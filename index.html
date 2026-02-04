@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>無縫流體 3D 觀賞器</title>
+    <title>立體照片 3D 觀賞器 - 視差版本</title>
     <style>
         :root { --accent: #ffdd59; --bg: #111; }
         body {
@@ -19,19 +19,13 @@
         canvas { 
             position: absolute; top:0; left:0; width:100%; height:100%; 
             object-fit: cover;
-            /* 關鍵：增加平滑過渡感 */
-            transition: transform 0.2s cubic-bezier(0.1, 0.5, 0.2, 1);
-            will-change: transform, mask-image;
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        opacity 0.3s ease;
+            will-change: transform, opacity;
         }
         
-        /* 使用 Webkit Mask 實現無縫漸層切換 */
-        #canvasR {
-            z-index: 2;
-            -webkit-mask-image: linear-gradient(to right, transparent 40%, black 60%);
-            -webkit-mask-size: 300% 100%;
-            -webkit-mask-position: 100% 0;
-        }
         #canvasL { z-index: 1; }
+        #canvasR { z-index: 2; }
 
         .panel { width: 90%; max-width: 750px; padding: 25px; text-align: center; }
         .thumb-nav { 
@@ -108,27 +102,37 @@
             update3D(0.5); 
         }
 
-        // 核心渲染：無縫漸層位移技術
+        // ✨ 核心改良：真正的立體視差效果
         function update3D(percent) {
-            // 1. 調整遮罩位置 (0% -> 100%)
-            // 我們使用 300% 寬度的漸層，讓中間的「模糊過渡帶」隨位置滑動
-            const maskPos = (1 - percent) * 100;
-            cvR.style.webkitMaskPosition = `${maskPos}% 0`;
+            // 🔑 關鍵改變：兩個視圖要「同方向」移動
+            // 這模擬了雙眼從不同角度看同一物體的效果
             
-            // 2. 差速位移 (Differential Shift)
-            // 這是增加立體感的秘訣：左圖和右圖做反方向的微幅移動
-            const maxShift = 45; // 增加位移量，讓立體感噴發
-            const moveL = (percent - 0.5) * -maxShift;
-            const moveR = (percent - 0.5) * maxShift;
-
-            // 稍微放大(scale)以確保位移時不露邊
-            cvL.style.transform = `scale(1.18) translateX(${moveL}px)`;
-            cvR.style.transform = `scale(1.18) translateX(${moveR}px)`;
+            const maxShift = 30;  // 視差位移量
+            const centerOffset = (percent - 0.5); // -0.5 到 0.5
+            
+            // 左眼視圖移動較少，右眼視圖移動較多
+            // 這創造了深度感
+            const shiftL = centerOffset * maxShift * 0.7;
+            const shiftR = centerOffset * maxShift * 1.3;
+            
+            cvL.style.transform = `scale(1.12) translateX(${shiftL}px)`;
+            cvR.style.transform = `scale(1.12) translateX(${shiftR}px)`;
+            
+            // 用透明度混合創造平滑的視角轉換
+            // 中間位置兩個視圖都可見，創造立體感
+            const blend = Math.abs(centerOffset) * 2; // 0 到 1
+            cvR.style.opacity = 0.5 + percent * 0.5;
+            cvL.style.opacity = 0.5 + (1 - percent) * 0.5;
         }
 
         document.getElementById('vbox').onmousemove = (e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             update3D((e.clientX - rect.left) / rect.width);
+        };
+
+        // 重置到中間位置
+        document.getElementById('vbox').onmouseleave = () => {
+            update3D(0.5);
         };
 
         authBtn.onclick = () => {
@@ -144,7 +148,6 @@
 
         function handleMove(e) {
             if(!e.gamma) return;
-            // 限制感應範圍在 -15 到 15 度
             let p = (e.gamma + 15) / 30; 
             update3D(Math.max(0, Math.min(1, p)));
         }
