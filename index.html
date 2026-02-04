@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>立體照片 3D 觀賞器 - 終極版</title>
+    <title>立體照片 3D 觀賞器 - 透視旋轉版</title>
     <style>
         :root { --accent: #ffdd59; --bg: #111; }
         body {
@@ -12,13 +12,16 @@
             overflow: hidden;
         }
         
+        /* 3D 透視容器 */
         .viewport {
             position: relative; width: 92vw; max-width: 750px;
             margin-top: 30px; overflow: visible;
-            perspective: 1500px;
+            /* 透視深度 */
+            perspective: 1200px;
             perspective-origin: center center;
         }
         
+        /* 可旋轉的照片容器 */
         .photo-container {
             position: relative;
             width: 100%;
@@ -26,8 +29,8 @@
             overflow: hidden;
             box-shadow: 0 40px 80px rgba(0,0,0,0.9);
             background: #000;
-            transition: transform 0.35s cubic-bezier(0.16, 0.84, 0.44, 1),
-                        box-shadow 0.35s ease;
+            transition: transform 0.3s cubic-bezier(0.16, 0.84, 0.44, 1),
+                        box-shadow 0.3s ease;
             transform-style: preserve-3d;
             will-change: transform;
         }
@@ -37,10 +40,7 @@
             top: 0; left: 0; 
             width: 100%; height: 100%; 
             object-fit: cover;
-            transition: transform 0.35s cubic-bezier(0.16, 0.84, 0.44, 1),
-                        opacity 0.35s cubic-bezier(0.16, 0.84, 0.44, 1),
-                        filter 0.25s ease;
-            will-change: transform, opacity;
+            transition: opacity 0.3s cubic-bezier(0.16, 0.84, 0.44, 1);
         }
         
         #canvasL { z-index: 1; }
@@ -124,91 +124,49 @@
             update3D(0.5, 0.5); 
         }
 
-        // ✨ 終極算法：多層次 3D 效果
+        // ✨ 核心：3D 透視旋轉 + 立體視圖切換
         function update3D(percentX, percentY) {
-            const centerOffsetX = (percentX - 0.5);
-            const centerOffsetY = (percentY - 0.5);
+            // 🎯 旋轉角度計算
+            const maxRotation = 12;
+            const rotateY = (percentX - 0.5) * maxRotation * 2;  // 水平旋轉
+            const rotateX = (0.5 - percentY) * maxRotation * 1.5; // 垂直旋轉
             
-            // === 第一層：3D 容器旋轉 === 
-            const maxRotation = 8; // 輕微旋轉不會太誇張
-            const rotateY = centerOffsetX * maxRotation * 2;
-            const rotateX = -centerOffsetY * maxRotation * 1.5;
-            
-            // === 第二層：視差位移（在旋轉的基礎上）===
-            const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-            const smoothOffsetX = centerOffsetX >= 0 
-                ? easeOut(centerOffsetX * 2) * 0.5
-                : -easeOut(-centerOffsetX * 2) * 0.5;
-            
-            const maxShift = 20;
-            const shiftL = smoothOffsetX * maxShift * 0.7;
-            const shiftR = smoothOffsetX * maxShift * 1.3;
-            
-            // === 第三層：動態縮放增加深度 ===
-            const scaleBase = 1.06;
-            const scaleDelta = Math.abs(smoothOffsetX) * 0.03;
-            const scaleL = scaleBase + scaleDelta * 0.4;
-            const scaleR = scaleBase + scaleDelta * 0.6;
-            
-            // 應用視差位移到 canvas
-            cvL.style.transform = `scale(${scaleL}) translateX(${shiftL}px)`;
-            cvR.style.transform = `scale(${scaleR}) translateX(${shiftR}px)`;
-            
-            // === 第四層：S 曲線透明度混合 ===
+            // 🎯 立體視圖切換（根據旋轉角度）
             const smoothstep = (x) => x * x * (3 - 2 * x);
-            const blendFactor = smoothstep(percentX);
+            const viewBlend = smoothstep(percentX);
             
-            cvR.style.opacity = 0.35 + blendFactor * 0.65;
-            cvL.style.opacity = 0.35 + (1 - blendFactor) * 0.65;
+            cvR.style.opacity = 0.4 + viewBlend * 0.6;
+            cvL.style.opacity = 0.4 + (1 - viewBlend) * 0.6;
             
-            // === 第五層：景深微模糊 ===
-            const blurAmount = Math.abs(centerOffsetX) * 0.4;
-            cvL.style.filter = `blur(${blurAmount}px) brightness(${1 - Math.abs(centerOffsetX) * 0.05})`;
-            cvR.style.filter = `blur(${blurAmount * 0.3}px) brightness(${1 + Math.abs(centerOffsetX) * 0.05})`;
+            // 🎯 動態陰影（跟隨旋轉方向）
+            const shadowX = rotateY * 2;
+            const shadowY = -rotateX * 2;
+            const shadowBlur = Math.abs(rotateY) + Math.abs(rotateX);
             
-            // === 第六層：容器 3D 旋轉 ===
+            // 🎯 組合 3D 變換
             photoContainer.style.transform = `
+                perspective(1200px)
                 rotateX(${rotateX}deg) 
                 rotateY(${rotateY}deg)
-                scale(1.02)
+                scale(1.05)
             `;
             
-            // === 第七層：動態陰影 ===
-            const shadowX = rotateY * 2.5;
-            const shadowY = -rotateX * 2.5;
-            const shadowBlur = 20 + (Math.abs(rotateY) + Math.abs(rotateX)) * 1.5;
-            
             photoContainer.style.boxShadow = `
-                ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.6),
+                ${shadowX}px ${shadowY}px ${20 + shadowBlur}px rgba(0,0,0,0.5),
                 0 40px 80px rgba(0,0,0,0.9)
             `;
         }
 
-        let targetX = 0.5, targetY = 0.5;
-        let currentX = 0.5, currentY = 0.5;
-        
-        // 慣性動畫
-        function animate() {
-            const ease = 0.12;
-            currentX += (targetX - currentX) * ease;
-            currentY += (targetY - currentY) * ease;
-            
-            if (Math.abs(targetX - currentX) > 0.001 || Math.abs(targetY - currentY) > 0.001) {
-                update3D(currentX, currentY);
-                requestAnimationFrame(animate);
-            }
-        }
-
+        // 滑鼠互動
         document.getElementById('vbox').onmousemove = (e) => {
             const rect = e.currentTarget.getBoundingClientRect();
-            targetX = (e.clientX - rect.left) / rect.width;
-            targetY = (e.clientY - rect.top) / rect.height;
-            requestAnimationFrame(animate);
+            const percentX = (e.clientX - rect.left) / rect.width;
+            const percentY = (e.clientY - rect.top) / rect.height;
+            update3D(percentX, percentY);
         };
 
         document.getElementById('vbox').onmouseleave = () => {
-            targetX = targetY = 0.5;
-            requestAnimationFrame(animate);
+            update3D(0.5, 0.5);
         };
 
         authBtn.onclick = () => {
@@ -216,7 +174,7 @@
                 DeviceOrientationEvent.requestPermission().then(s => {
                     if(s==='granted') {
                         window.addEventListener('deviceorientation', handleMove);
-                        authBtn.textContent = '✓ 終極 3D 模式已啟動';
+                        authBtn.textContent = '✓ 3D 模式已啟動';
                         authBtn.style.background = '#4ade80';
                     }
                 });
@@ -228,9 +186,9 @@
 
         function handleMove(e) {
             if(!e.gamma || !e.beta) return;
-            targetX = Math.max(0, Math.min(1, (e.gamma + 25) / 50));
-            targetY = Math.max(0, Math.min(1, (e.beta + 25) / 50));
-            requestAnimationFrame(animate);
+            const percentX = Math.max(0, Math.min(1, (e.gamma + 30) / 60));
+            const percentY = Math.max(0, Math.min(1, (e.beta + 30) / 60));
+            update3D(percentX, percentY);
         }
     </script>
 </body>
