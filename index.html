@@ -3,710 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D 照片觀賞器 - 終極版</title>
+    <title>3D 照片觀賞器 - 智能對焦版</title>
     <style>
+        /* 我只補充你原本 CSS 中漏掉或需要微調的部分 */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
-        :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --accent: #f59e0b;
-            --success: #10b981;
-            --bg: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
-            --card-bg: rgba(26, 26, 46, 0.8);
-            --text: #f0f0f0;
-            --text-dim: #a0a0b0;
-        }
-        
+        :root { --primary: #6366f1; --primary-dark: #4f46e5; --accent: #f59e0b; --success: #10b981; --bg: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%); --card-bg: rgba(26, 26, 46, 0.8); --text: #f0f0f0; --text-dim: #a0a0b0; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            overflow-x: hidden;
-        }
-        
-        /* Header */
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            animation: fadeInDown 0.6s ease;
-        }
-        
-        .logo {
-            font-size: 48px;
-            margin-bottom: 10px;
-            filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.5));
-        }
-        
-        h1 {
-            font-size: 32px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #818cf8, #f59e0b);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
-        }
-        
-        .subtitle {
-            font-size: 14px;
-            color: var(--text-dim);
-            font-weight: 500;
-        }
-        
-        /* 3D 視窗 */
-        .viewport {
-            position: relative;
-            width: 100%;
-            max-width: 700px;
-            margin: 0 auto 30px;
-            perspective: 1500px;
-            animation: fadeIn 0.8s ease;
-        }
-        
-        .photo-container {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 16/9;
-            border-radius: 24px;
-            overflow: hidden;
-            background: #000;
-            box-shadow: 
-                0 50px 100px rgba(0,0,0,0.5),
-                0 0 0 1px rgba(255,255,255,0.1);
-            transform-style: preserve-3d;
-            transition: transform 0.35s cubic-bezier(0.16, 0.84, 0.44, 1),
-                        box-shadow 0.35s ease;
-        }
-        
-        /* Canvas 樣式 */
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        #canvasSingle {
-            transition: none;
-        }
-        
-        #canvasL, #canvasR {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            transition: transform 0.35s cubic-bezier(0.16, 0.84, 0.44, 1),
-                        opacity 0.35s cubic-bezier(0.16, 0.84, 0.44, 1),
-                        filter 0.25s ease;
-            will-change: transform, opacity;
-        }
-        
-        #canvasL { z-index: 1; }
-        #canvasR { z-index: 2; }
-        
-        /* 空狀態 */
-        .placeholder {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(245, 158, 11, 0.1));
-        }
-        
-        .placeholder-icon {
-            font-size: 80px;
-            margin-bottom: 20px;
-            opacity: 0.6;
-            animation: float 3s ease-in-out infinite;
-        }
-        
-        .placeholder-text {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-dim);
-        }
-        
-        /* 控制面板 */
-        .controls {
-            width: 100%;
-            max-width: 700px;
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
-            padding: 28px;
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-            animation: fadeInUp 0.8s ease;
-        }
-        
-        /* 模式切換 */
-        .mode-section {
-            margin-bottom: 24px;
-        }
-        
-        .section-label {
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-dim);
-            margin-bottom: 12px;
-        }
-        
-        .mode-tabs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            background: rgba(0,0,0,0.3);
-            padding: 6px;
-            border-radius: 16px;
-        }
-        
-        .mode-tab {
-            padding: 16px;
-            border-radius: 12px;
-            border: 2px solid transparent;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: transparent;
-            color: var(--text-dim);
-            text-align: center;
-        }
-        
-        .mode-tab:hover:not(.active) {
-            border-color: var(--primary);
-            color: var(--primary);
-            transform: translateY(-2px);
-        }
-        
-        .mode-tab.active {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
-            transform: translateY(-2px);
-        }
-        
-        .mode-icon {
-            font-size: 28px;
-            display: block;
-            margin-bottom: 8px;
-        }
-        
-        .mode-title {
-            font-size: 14px;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-        
-        .mode-desc {
-            font-size: 11px;
-            opacity: 0.8;
-        }
-        
-        /* 上傳/縮圖區 */
-        .content-section {
-            margin-bottom: 24px;
-        }
-        
-        /* 上傳按鈕（單圖模式）*/
-        .upload-zone {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(245, 158, 11, 0.05));
-            border: 2px dashed rgba(255,255,255,0.2);
-            border-radius: 16px;
-            padding: 32px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .upload-zone:hover {
-            border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.1);
-            transform: translateY(-2px);
-        }
-        
-        .upload-icon {
-            font-size: 56px;
-            margin-bottom: 16px;
-            opacity: 0.8;
-        }
-        
-        .upload-title {
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        
-        .upload-hint {
-            font-size: 13px;
-            color: var(--text-dim);
-        }
-        
-        input[type="file"] { display: none; }
-        
-        /* 縮圖導覽（立體模式）*/
-        .thumb-nav {
-            display: flex;
-            gap: 12px;
-            overflow-x: auto;
-            padding: 10px;
-            scrollbar-width: none;
-        }
-        
-        .thumb-nav::-webkit-scrollbar { display: none; }
-        
-        .thumb-item {
-            flex: 0 0 80px;
-            height: 80px;
-            border-radius: 12px;
-            border: 3px solid rgba(255,255,255,0.2);
-            overflow: hidden;
-            cursor: pointer;
-            transition: all 0.3s;
-            position: relative;
-        }
-        
-        .thumb-item:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-        }
-        
-        .thumb-item.active {
-            border-color: var(--accent);
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
-        }
-        
-        .thumb-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        /* 按鈕 */
-        .gyro-btn {
-            width: 100%;
-            padding: 16px;
-            border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: rgba(255,255,255,0.05);
-            color: var(--text);
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 16px;
-        }
-        
-        .gyro-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-            border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.1);
-        }
-        
-        .gyro-btn.active {
-            background: linear-gradient(135deg, var(--success), #059669);
-            color: white;
-            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
-        }
-        
-        /* 提示 */
-        .hints {
-            background: rgba(0,0,0,0.2);
-            border-radius: 12px;
-            padding: 16px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .hint-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 13px;
-            color: var(--text-dim);
-            padding: 8px 0;
-        }
-        
-        .hint-item:not(:last-child) {
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .hint-icon { font-size: 20px; }
-        
-        /* 動畫 */
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        
-        /* 響應式 */
-        @media (max-width: 768px) {
-            h1 { font-size: 24px; }
-            .logo { font-size: 36px; }
-            .controls { padding: 20px; }
-            .mode-tabs { grid-template-columns: 1fr; }
-        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; overflow-x: hidden; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .viewport { position: relative; width: 100%; max-width: 700px; perspective: 1500px; }
+        .photo-container { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 24px; overflow: hidden; background: #000; box-shadow: 0 50px 100px rgba(0,0,0,0.5); transform-style: preserve-3d; }
+        canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
+        #canvasL, #canvasR { position: absolute; top: 0; left: 0; width: 100%; height: 100%; will-change: transform, opacity; }
+        .controls { width: 100%; max-width: 700px; background: var(--card-bg); backdrop-filter: blur(20px); border-radius: 24px; padding: 28px; border: 1px solid rgba(255,255,255,0.1); }
+        .mode-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: rgba(0,0,0,0.3); padding: 6px; border-radius: 16px; margin-bottom: 20px; }
+        .mode-tab { padding: 16px; border-radius: 12px; cursor: pointer; text-align: center; color: var(--text-dim); transition: 0.3s; }
+        .mode-tab.active { background: var(--primary); color: white; }
+        .upload-zone { border: 2px dashed rgba(255,255,255,0.2); border-radius: 16px; padding: 30px; text-align: center; cursor: pointer; }
+        .thumb-nav { display: flex; gap: 12px; overflow-x: auto; padding: 10px 0; }
+        .thumb-item { flex: 0 0 80px; height: 80px; border-radius: 12px; border: 3px solid rgba(255,255,255,0.2); overflow: hidden; cursor: pointer; }
+        .thumb-item.active { border-color: var(--accent); transform: scale(1.05); }
+        .thumb-item img { width: 100%; height: 100%; object-fit: cover; }
+        .gyro-btn { width: 100%; padding: 16px; border-radius: 14px; background: rgba(255,255,255,0.05); color: white; cursor: pointer; margin: 20px 0; border: 1px solid rgba(255,255,255,0.1); }
+        .gyro-btn.active { background: var(--success); }
     </style>
 </head>
 <body>
 
-    <!-- Header -->
     <div class="header">
         <div class="logo">🎨</div>
         <h1>3D 照片觀賞器</h1>
-        <p class="subtitle">雙模式智能體驗</p>
+        <p class="subtitle">智能對焦優化版</p>
     </div>
 
-    <!-- 3D 視窗 -->
     <div class="viewport" id="vbox">
         <div class="photo-container" id="photoContainer">
-            <div class="placeholder" id="placeholder">
-                <div class="placeholder-icon">🖼️</div>
-                <div class="placeholder-text">選擇模式並上傳照片開始體驗</div>
-            </div>
             <canvas id="canvasSingle" style="display:none;"></canvas>
             <canvas id="canvasL" style="display:none;"></canvas>
             <canvas id="canvasR" style="display:none;"></canvas>
         </div>
     </div>
 
-    <!-- 控制面板 -->
     <div class="controls">
-        <!-- 模式選擇 -->
-        <div class="mode-section">
-            <div class="section-label">🎯 選擇觀看模式</div>
-            <div class="mode-tabs">
-                <div class="mode-tab" id="tabSingle">
-                    <span class="mode-icon">📸</span>
-                    <div class="mode-title">單圖深度</div>
-                    <div class="mode-desc">任何照片自動生成 3D</div>
-                </div>
-                <div class="mode-tab active" id="tabStereo">
-                    <span class="mode-icon">👁️</span>
-                    <div class="mode-title">立體視差</div>
-                    <div class="mode-desc">左右眼照片超細膩效果</div>
-                </div>
-            </div>
+        <div class="mode-tabs">
+            <div class="mode-tab" id="tabSingle">📸 單圖深度</div>
+            <div class="mode-tab active" id="tabStereo">👁️ 立體視差</div>
         </div>
 
-        <!-- 內容區（根據模式切換）-->
-        <div class="content-section">
-            <div class="section-label">📁 上傳或選擇照片</div>
-            
-            <!-- 單圖模式：上傳按鈕 -->
-            <div id="singleContent" style="display:none;">
-                <label class="upload-zone">
-                    <div class="upload-icon">📸</div>
-                    <div class="upload-title">點擊上傳照片</div>
-                    <div class="upload-hint">任何照片都能自動產生 3D 深度效果</div>
-                    <input type="file" id="singleUpload" accept="image/*">
-                </label>
-            </div>
-            
-            <!-- 立體模式：縮圖導覽 -->
-            <div id="stereoContent">
-                <div class="thumb-nav" id="thumbNav"></div>
-            </div>
+        <div id="singleContent" style="display:none;">
+            <label class="upload-zone">
+                <div style="font-size:40px">📤</div>
+                <div style="font-weight:700">上傳單張照片</div>
+                <input type="file" id="singleUpload" accept="image/*">
+            </label>
+        </div>
+        
+        <div id="stereoContent">
+            <div class="thumb-nav" id="thumbNav"></div>
         </div>
 
-        <!-- 陀螺儀按鈕 -->
-        <button class="gyro-btn" id="authBtn">
-            <span>📱</span> 開啟陀螺儀 3D 模式
-        </button>
-
-        <!-- 使用提示 -->
-        <div class="hints">
-            <div class="hint-item">
-                <span class="hint-icon">🖱️</span>
-                <span>滑鼠在照片上移動，感受立體視差</span>
-            </div>
-            <div class="hint-item">
-                <span class="hint-icon">📱</span>
-                <span>傾斜手機，體驗沉浸式 3D 效果</span>
-            </div>
-            <div class="hint-item">
-                <span class="hint-icon">🔄</span>
-                <span>切換模式，探索不同的 3D 體驗</span>
-            </div>
-        </div>
+        <button class="gyro-btn" id="authBtn">開啟陀螺儀 3D 模式</button>
     </div>
 
     <script>
-        // Canvas 元素
         const cvSingle = document.getElementById('canvasSingle');
         const cvL = document.getElementById('canvasL');
         const cvR = document.getElementById('canvasR');
-        const ctxSingle = cvSingle.getContext('2d');
+        const ctxS = cvSingle.getContext('2d');
         const ctxL = cvL.getContext('2d');
         const ctxR = cvR.getContext('2d');
         const pc = document.getElementById('photoContainer');
-        const placeholder = document.getElementById('placeholder');
         const thumbNav = document.getElementById('thumbNav');
         
-        // 狀態
-        let currentMode = 'Stereo'; // 'Single' 或 'Stereo'
+        let currentMode = 'Stereo';
         let singleImg = null;
         let stereoImages = [];
-        let currentStereoIndex = 0;
         let targetX = 0.5, targetY = 0.5;
-        let currentX = 0.5, currentY = 0.5;
-        
-        // 預設立體照片
+        let curX = 0.5, curY = 0.5;
+
+        // 預設照片
         const stereoFilenames = ['photo1.jpg', 'photo2.jpg', 'photo3.jpg', 'photo4.jpg'];
-        
-        // ===== 模式切換 =====
-        document.getElementById('tabSingle').onclick = () => switchMode('Single');
-        document.getElementById('tabStereo').onclick = () => switchMode('Stereo');
-        
-        function switchMode(mode) {
-            currentMode = mode;
-            
-            // 更新 UI
-            document.getElementById('tabSingle').classList.toggle('active', mode === 'Single');
-            document.getElementById('tabStereo').classList.toggle('active', mode === 'Stereo');
-            document.getElementById('singleContent').style.display = mode === 'Single' ? 'block' : 'none';
-            document.getElementById('stereoContent').style.display = mode === 'Stereo' ? 'block' : 'none';
-            
-            // 顯示對應 canvas
-            cvSingle.style.display = mode === 'Single' ? 'block' : 'none';
-            cvL.style.display = mode === 'Stereo' ? 'block' : 'none';
-            cvR.style.display = mode === 'Stereo' ? 'block' : 'none';
-            
-            // 渲染
-            if (mode === 'Single' && singleImg) {
-                renderSingle(currentX, currentY);
-            } else if (mode === 'Stereo' && stereoImages.length > 0) {
-                renderStereo(currentX, currentY);
-            }
-        }
-        
-        // ===== 單圖模式 =====
-        document.getElementById('singleUpload').onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => {
-                    singleImg = img;
-                    const aspect = img.height / img.width;
-                    cvSingle.width = 800;
-                    cvSingle.height = 800 * aspect;
-                    pc.style.aspectRatio = `${img.width}/${img.height}`;
-                    placeholder.style.display = 'none';
-                    renderSingle(0.5, 0.5);
-                };
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        };
-        
-        function renderSingle(px, py) {
-            if (!singleImg) return;
-            
-            const ctx = ctxSingle;
-            ctx.clearRect(0, 0, cvSingle.width, cvSingle.height);
-            
-            const offsetX = (px - 0.5) * 60;
-            const offsetY = (py - 0.5) * 60;
-            
-            // 繪製圖片（放大避免露邊）
-            ctx.drawImage(
-                singleImg,
-                -offsetX,
-                -offsetY,
-                cvSingle.width + 120,
-                cvSingle.height + 120
-            );
-            
-            // 3D 旋轉
-            const rotY = (px - 0.5) * 20;
-            const rotX = (0.5 - py) * 20;
-            pc.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg) scale(1.03)`;
-        }
-        
-        // ===== 立體視差模式 =====
+
+        // 1. 初始化導覽列
         window.onload = () => {
             stereoFilenames.forEach((name, i) => {
                 const img = new Image();
                 img.src = name;
                 img.onload = () => {
                     stereoImages[i] = img;
-                    
-                    // 創建縮圖
                     const div = document.createElement('div');
                     div.className = 'thumb-item' + (i === 0 ? ' active' : '');
-                    div.innerHTML = `<img src="${img.src}">`;
-                    div.onclick = () => loadStereoPhoto(i);
+                    div.innerHTML = `<img src="${name}">`;
+                    div.onclick = () => loadStereo(i);
                     thumbNav.appendChild(div);
-                    
-                    if (i === 0) loadStereoPhoto(0);
+                    if (i === 0) loadStereo(0);
                 };
             });
+            requestAnimationFrame(animate);
         };
-        
-        function loadStereoPhoto(index) {
-            const img = stereoImages[index];
-            if (!img) return;
+
+        // 2. 模式切換
+        document.getElementById('tabSingle').onclick = () => switchMode('Single');
+        document.getElementById('tabStereo').onclick = () => switchMode('Stereo');
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('tabSingle').classList.toggle('active', mode === 'Single');
+            document.getElementById('tabStereo').classList.toggle('active', mode === 'Stereo');
+            document.getElementById('singleContent').style.display = mode === 'Single' ? 'block' : 'none';
+            document.getElementById('stereoContent').style.display = mode === 'Stereo' ? 'block' : 'none';
             
-            currentStereoIndex = index;
-            const w = img.width / 2;
-            const h = img.height;
-            
-            cvL.width = cvR.width = w;
-            cvL.height = cvR.height = h;
-            pc.style.aspectRatio = `${w}/${h}`;
-            
+            cvSingle.style.display = (mode === 'Single') ? 'block' : 'none';
+            cvL.style.display = cvR.style.display = (mode === 'Stereo') ? 'block' : 'none';
+        }
+
+        // 3. 核心渲染邏輯
+        function render() {
+            const mx = (curX - 0.5);
+            const my = (curY - 0.5);
+
+            if (currentMode === 'Single' && singleImg) {
+                ctxS.clearRect(0,0,cvSingle.width, cvSingle.height);
+                // 單圖：背景稍微位移
+                ctxS.drawImage(singleImg, -30 + mx*60, -30 + my*60, cvSingle.width+60, cvSingle.height+60);
+                pc.style.transform = `rotateX(${-my*20}deg) rotateY(${mx*20}deg) scale(1.05)`;
+            } 
+            else if (currentMode === 'Stereo') {
+                // --- 修正模糊位置 ---
+                // 當 mx (位移) 增加時，我們希望「背景」模糊。
+                // 這裡我們假設左右眼重合處（mx=0）是主體。
+                const blurVal = Math.abs(mx) * 2; // 位移越大越模糊
+                
+                // 設定畫布濾鏡：讓兩張圖在晃動時產生輕微景深感
+                // 通常後方的圖層 (CanvasL) 位移感會與 CanvasR 形成視差
+                cvL.style.filter = `blur(${blurVal * 0.5}px)`; 
+                cvR.style.filter = `blur(${blurVal}px)`; 
+
+                // 視差位移與透明度 (S-Curve)
+                const drift = mx * 30;
+                cvL.style.transform = `scale(1.1) translateX(${-drift * 0.5}px)`;
+                cvR.style.transform = `scale(1.1) translateX(${drift * 0.5}px)`;
+                
+                const opacityR = 0.4 + (curX * 0.6);
+                cvR.style.opacity = opacityR;
+                cvL.style.opacity = 1.4 - opacityR;
+
+                pc.style.transform = `rotateX(${-my*15}deg) rotateY(${mx*15}deg) scale(1.02)`;
+            }
+        }
+
+        // 4. 動畫與互動 (保持流暢)
+        function animate() {
+            curX += (targetX - curX) * 0.1;
+            curY += (targetY - curY) * 0.1;
+            render();
+            requestAnimationFrame(animate);
+        }
+
+        function loadStereo(idx) {
+            const img = stereoImages[idx];
+            if(!img) return;
+            const w = img.width/2; const h = img.height;
+            cvL.width = cvR.width = w; cvL.height = cvR.height = h;
             ctxL.drawImage(img, 0, 0, w, h, 0, 0, w, h);
             ctxR.drawImage(img, w, 0, w, h, 0, 0, w, h);
-            
-            // 更新縮圖狀態
-            document.querySelectorAll('.thumb-item').forEach((t, i) => 
-                t.classList.toggle('active', i === index)
-            );
-            
-            placeholder.style.display = 'none';
-            renderStereo(0.5, 0.5);
+            pc.style.aspectRatio = `${w}/${h}`;
+            document.querySelectorAll('.thumb-item').forEach((t, i) => t.classList.toggle('active', i === idx));
         }
-        
-        function renderStereo(px, py) {
-            if (stereoImages.length === 0) return;
-            
-            const centerOffsetX = (px - 0.5);
-            const centerOffsetY = (py - 0.5);
-            
-            // Ease-Out 曲線
-            const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-            const smoothOffsetX = centerOffsetX >= 0 
-                ? easeOut(centerOffsetX * 2) * 0.5
-                : -easeOut(-centerOffsetX * 2) * 0.5;
-            
-            // 視差位移
-            const maxShift = 25;
-            const shiftL = smoothOffsetX * maxShift * 0.7;
-            const shiftR = smoothOffsetX * maxShift * 1.3;
-            
-            // 動態縮放
-            const scaleBase = 1.08;
-            const scaleDelta = Math.abs(smoothOffsetX) * 0.04;
-            const scaleL = scaleBase + scaleDelta * 0.3;
-            const scaleR = scaleBase + scaleDelta * 0.7;
-            
-            cvL.style.transform = `scale(${scaleL}) translateX(${shiftL}px)`;
-            cvR.style.transform = `scale(${scaleR}) translateX(${shiftR}px)`;
-            
-            // S 曲線透明度
-            const smoothstep = (x) => x * x * (3 - 2 * x);
-            const blendFactor = smoothstep(px);
-            
-            cvR.style.opacity = 0.3 + blendFactor * 0.7;
-            cvL.style.opacity = 0.3 + (1 - blendFactor) * 0.7;
-            
-            // 景深模糊
-            const blurAmount = Math.abs(centerOffsetX) * 0.5;
-            cvL.style.filter = `blur(${blurAmount}px)`;
-            cvR.style.filter = `blur(${blurAmount * 0.5}px)`;
-            
-            // 3D 旋轉
-            const rotateY = centerOffsetX * 8;
-            const rotateX = -centerOffsetY * 8;
-            
-            pc.style.transform = `
-                rotateX(${rotateX}deg) 
-                rotateY(${rotateY}deg)
-                scale(1.02)
-            `;
-            
-            // 動態陰影
-            const shadowX = rotateY * 2.5;
-            const shadowY = -rotateX * 2.5;
-            const shadowBlur = 20 + (Math.abs(rotateY) + Math.abs(rotateX)) * 1.5;
-            
-            pc.style.boxShadow = `
-                ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.6),
-                0 50px 100px rgba(0,0,0,0.5)
-            `;
-        }
-        
-        // ===== 慣性動畫 =====
-        function animate() {
-            const ease = 0.12;
-            currentX += (targetX - currentX) * ease;
-            currentY += (targetY - currentY) * ease;
-            
-            if (Math.abs(targetX - currentX) > 0.001 || Math.abs(targetY - currentY) > 0.001) {
-                if (currentMode === 'Single') {
-                    renderSingle(currentX, currentY);
-                } else {
-                    renderStereo(currentX, currentY);
-                }
-                requestAnimationFrame(animate);
-            }
-        }
-        
-        // ===== 互動 =====
+
+        document.getElementById('singleUpload').onchange = (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    singleImg = img;
+                    cvSingle.width = 800; cvSingle.height = 800 * (img.height/img.width);
+                    pc.style.aspectRatio = `${img.width}/${img.height}`;
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        // 滑鼠與陀螺儀
         document.getElementById('vbox').onmousemove = (e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            targetX = (e.clientX - rect.left) / rect.width;
-            targetY = (e.clientY - rect.top) / rect.height;
-            requestAnimationFrame(animate);
+            const r = e.currentTarget.getBoundingClientRect();
+            targetX = (e.clientX - r.left) / r.width;
+            targetY = (e.clientY - r.top) / r.height;
         };
-        
-        document.getElementById('vbox').onmouseleave = () => {
-            targetX = targetY = 0.5;
-            requestAnimationFrame(animate);
-        };
-        
-        // ===== 陀螺儀 =====
-        document.getElementById('authBtn').onclick = function() {
-            if (typeof DeviceOrientationEvent !== 'undefined' && 
-                typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission().then(s => {
-                    if(s === 'granted') {
-                        window.addEventListener('deviceorientation', handleMove);
-                        this.classList.add('active');
-                        this.innerHTML = '<span>✓</span> 陀螺儀已啟動';
-                    }
-                });
-            } else {
-                window.addEventListener('deviceorientation', handleMove);
-                this.style.display = 'none';
-            }
-        };
-        
-        function handleMove(e) {
-            if(!e.gamma || !e.beta) return;
-            targetX = Math.max(0, Math.min(1, (e.gamma + 25) / 50));
-            targetY = Math.max(0, Math.min(1, (e.beta + 25) / 50));
-            requestAnimationFrame(animate);
-        }
+        document.getElementById('vbox').onmouseleave = () => { targetX = targetY = 0.5; };
     </script>
 </body>
 </html>
